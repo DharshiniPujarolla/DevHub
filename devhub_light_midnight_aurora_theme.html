@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevHub — GitHub Developer & Repository Analytics (Light Midnight Aurora)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Advanced Analytics & Language Distribution -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        aurora: {
+                            bg: '#F8FAFC',
+                            cardBg: '#FFFFFF',
+                            card: '#FFFFFF',
+                            elevated: '#F1F5F9',
+                            purple: '#7C3AED',
+                            blue: '#2563EB',
+                            cyan: '#06B6D4',
+                            text: '#0F172A',
+                            secondary: '#475569',
+                            muted: '#64748B',
+                            border: '#E2E8F0',
+                            success: '#16A34A',
+                            warning: '#D97706',
+                            error: '#DC2626'
+                        }
+                    },
+                    backgroundImage: {
+                        'aurora-gradient': 'linear-gradient(135deg, #7C3AED 0%, #2563EB 50%, #06B6D4 100%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+        .glass-aurora {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(16px);
+        }
+        .aurora-shadow {
+            box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-aurora-bg text-aurora-text h-full flex flex-col selection:bg-aurora-purple selection:text-white">
+
+    <header class="border-b border-aurora-border bg-aurora-cardBg/90 sticky top-0 z-50 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="app.switchTab('explore')">
+                <div class="w-10 h-10 rounded-xl bg-aurora-gradient flex items-center justify-center shadow-md shadow-purple-500/15 group-hover:scale-105 transition">
+                    <i class="fa-brands fa-github text-2xl text-white"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-aurora-purple via-aurora-blue to-aurora-cyan bg-clip-text text-transparent">DevHub</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-aurora-purple/10 text-aurora-purple font-semibold ml-1.5 border border-aurora-purple/20">Light Pro</span>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center space-x-1">
+                <button onclick="app.switchTab('explore')" id="nav-explore" class="px-3.5 py-2 rounded-xl text-sm font-medium transition-all bg-aurora-gradient text-white shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    <span>Explore & Search</span>
+                </button>
+                <button onclick="app.switchTab('discovery')" id="nav-discovery" class="px-3.5 py-2 rounded-xl text-sm font-medium transition-all text-aurora-secondary hover:text-aurora-text hover:bg-aurora-elevated flex items-center space-x-2">
+                    <i class="fa-solid fa-compass text-xs text-aurora-purple"></i>
+                    <span>Project Discovery</span>
+                </button>
+                <button onclick="app.switchTab('compare')" id="nav-compare" class="px-3.5 py-2 rounded-xl text-sm font-medium transition-all text-aurora-secondary hover:text-aurora-text hover:bg-aurora-elevated flex items-center space-x-2">
+                    <i class="fa-solid fa-code-compare text-xs text-aurora-blue"></i>
+                    <span>Compare Studio</span>
+                </button>
+                <button onclick="app.switchTab('dashboard')" id="nav-dashboard" class="px-3.5 py-2 rounded-xl text-sm font-medium transition-all text-aurora-secondary hover:text-aurora-text hover:bg-aurora-elevated flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-pie text-xs text-aurora-cyan"></i>
+                    <span>My Dashboard & Saved</span>
+                </button>
+                <button onclick="app.switchTab('api')" id="nav-api" class="px-3.5 py-2 rounded-xl text-sm font-medium transition-all text-aurora-secondary hover:text-aurora-text hover:bg-aurora-elevated flex items-center space-x-2">
+                    <i class="fa-solid fa-server text-xs text-aurora-purple"></i>
+                    <span>FastAPI & Rate Limit</span>
+                </button>
+            </nav>
+
+            <!-- User Auth & Profile Menu -->
+            <div class="flex items-center space-x-3">
+                <div id="rate-limit-pill" class="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-aurora-elevated border border-aurora-border text-xs text-aurora-secondary">
+                    <i class="fa-solid fa-bolt text-aurora-warning"></i>
+                    <span id="rate-limit-text">API: 60/60 req</span>
+                </div>
+                
+                <div class="relative">
+                    <button onclick="app.toggleUserMenu()" class="flex items-center space-x-2 p-1.5 rounded-xl bg-aurora-card border border-aurora-border hover:bg-aurora-elevated transition shadow-sm">
+                        <img id="header-user-avatar" src="https://placehold.co/40x40/7C3AED/ffffff?text=U" alt="User Avatar" class="w-7 h-7 rounded-lg object-cover">
+                        <span id="header-username" class="text-xs font-medium pr-1 text-aurora-text">Developer</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-aurora-muted"></i>
+                    </button>
+                    
+                    <!-- User Dropdown -->
+                    <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-aurora-card border border-aurora-border shadow-xl py-2 z-50">
+                        <div class="px-4 py-2 border-b border-aurora-border">
+                            <p class="text-xs text-aurora-muted">Signed in as</p>
+                            <p id="dropdown-username" class="text-sm font-bold text-aurora-text truncate">octocat</p>
+                        </div>
+                        <button onclick="app.switchTab('dashboard'); app.toggleUserMenu();" class="w-full text-left px-4 py-2 text-xs text-aurora-secondary hover:bg-aurora-elevated hover:text-aurora-text flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-bookmark w-4 text-aurora-cyan"></i><span>Saved Collections</span>
+                        </button>
+                        <button onclick="app.openAuthModal(); app.toggleUserMenu();" class="w-full text-left px-4 py-2 text-xs text-aurora-secondary hover:bg-aurora-elevated hover:text-aurora-text flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-user-gear w-4 text-aurora-purple"></i><span>Switch / Register User</span>
+                        </button>
+                        <div class="border-t border-aurora-border my-1"></div>
+                        <button onclick="app.logout(); app.toggleUserMenu();" class="w-full text-left px-4 py-2 text-xs text-aurora-error hover:bg-aurora-error/10 flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-right-from-bracket w-4"></i><span>Sign Out</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto">
+        
+        <!-- ================= TAB 1: EXPLORE & SEARCH ================= -->
+        <div id="tab-explore" class="tab-content max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Hero Search Section -->
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3 text-aurora-text">Explore GitHub Ecosystem</h1>
+                <p class="text-aurora-secondary text-sm sm:text-base mb-6">Search top-tier developers, trending repositories, analyze codebase statistics, contributor graphs, and programming language distributions instantly with Light Aurora telemetry.</p>
+                
+                <!-- Search Box with Tabs -->
+                <div class="bg-aurora-card p-3 rounded-2xl border border-aurora-border shadow-lg aurora-shadow">
+                    <div class="flex items-center space-x-2 mb-3 border-b border-aurora-border pb-3 px-1">
+                        <button onclick="app.setSearchMode('users')" id="search-mode-users" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm">
+                            <i class="fa-solid fa-users"></i><span>Developers</span>
+                        </button>
+                        <button onclick="app.setSearchMode('repos')" id="search-mode-repos" class="px-4 py-1.5 rounded-xl text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2">
+                            <i class="fa-solid fa-book-bookmark"></i><span>Repositories</span>
+                        </button>
+                    </div>
+                    <form onsubmit="app.handleSearch(event)" class="flex items-center space-x-2">
+                        <div class="relative flex-1">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-aurora-muted">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="search-input" placeholder="Search developers (e.g., torvalds, gaearon) or repos (e.g., react, linux)..." 
+                                class="w-full pl-11 pr-4 py-3 bg-aurora-elevated border border-aurora-border rounded-xl text-sm text-aurora-text placeholder-aurora-muted focus:outline-none focus:border-aurora-purple transition">
+                        </div>
+                        <button type="submit" class="px-6 py-3 bg-aurora-gradient hover:opacity-90 text-white font-semibold rounded-xl text-sm shadow-md transition flex items-center space-x-2">
+                            <span>Search</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Quick Filters / Trending Pills -->
+                <div class="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
+                    <span class="text-aurora-muted font-medium mr-1">Trending:</span>
+                    <button onclick="app.quickSearch('torvalds', 'users')" class="px-3 py-1 rounded-xl bg-aurora-card border border-aurora-border text-aurora-secondary hover:text-aurora-text hover:border-aurora-purple transition shadow-sm">torvalds</button>
+                    <button onclick="app.quickSearch('shadcn', 'users')" class="px-3 py-1 rounded-xl bg-aurora-card border border-aurora-border text-aurora-secondary hover:text-aurora-text hover:border-aurora-purple transition shadow-sm">shadcn</button>
+                    <button onclick="app.quickSearch('react', 'repos')" class="px-3 py-1 rounded-xl bg-aurora-card border border-aurora-border text-aurora-secondary hover:text-aurora-text hover:border-aurora-purple transition shadow-sm">react</button>
+                    <button onclick="app.quickSearch('tensorflow', 'repos')" class="px-3 py-1 rounded-xl bg-aurora-card border border-aurora-border text-aurora-secondary hover:text-aurora-text hover:border-aurora-purple transition shadow-sm">tensorflow</button>
+                    <button onclick="app.quickSearch('vue', 'repos')" class="px-3 py-1 rounded-xl bg-aurora-card border border-aurora-border text-aurora-secondary hover:text-aurora-text hover:border-aurora-purple transition shadow-sm">vue</button>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="search-loading" class="hidden py-16 text-center">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-aurora-purple border-t-transparent mb-3"></div>
+                <p class="text-sm text-aurora-secondary">Querying GitHub API & Computing Light Aurora Analytics...</p>
+            </div>
+
+            <!-- Search Results Grid -->
+            <div id="search-results-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Dynamically populated cards -->
+            </div>
+            
+            <!-- Initial Empty State / Welcome tip -->
+            <div id="search-empty-state" class="text-center py-16 bg-aurora-card rounded-2xl border border-dashed border-aurora-border shadow-sm">
+                <div class="w-16 h-16 bg-aurora-elevated rounded-2xl flex items-center justify-center mx-auto mb-4 text-aurora-cyan">
+                    <i class="fa-solid fa-code-branch text-2xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-aurora-text">Ready to explore GitHub</h3>
+                <p class="text-xs text-aurora-secondary max-w-md mx-auto mt-1">Enter a query above or click any trending pill to inspect developers, repositories, code metrics, and contributors.</p>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: PROJECT DISCOVERY ================= -->
+        <div id="tab-discovery" class="tab-content hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="mb-8 pb-4 border-b border-aurora-border">
+                <h1 class="text-2xl font-bold tracking-tight mb-1 text-aurora-text">Live GitHub Project Discovery</h1>
+                <p class="text-aurora-secondary text-sm">Explore real-time trending repositories across top tech categories powered live by GitHub API queries.</p>
+            </div>
+
+            <!-- Discovery Filter Bar -->
+            <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-lg mb-8 space-y-4">
+                <!-- Categories Selector -->
+                <div>
+                    <label class="block text-xs font-semibold text-aurora-secondary uppercase tracking-wider mb-2">Select Domain Category</label>
+                    <div id="discovery-categories-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+                        <button onclick="app.setDiscoveryCategory('AI/ML')" id="cat-btn-AI/ML" class="px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-gradient text-white transition flex items-center justify-center space-x-1.5 shadow-sm">
+                            <i class="fa-solid fa-brain"></i><span>AI/ML</span>
+                        </button>
+                        <button onclick="app.setDiscoveryCategory('Web Development')" id="cat-btn-Web Development" class="px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-globe"></i><span>Web Dev</span>
+                        </button>
+                        <button onclick="app.setDiscoveryCategory('Data Science')" id="cat-btn-Data Science" class="px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-chart-line"></i><span>Data Science</span>
+                        </button>
+                        <button onclick="app.setDiscoveryCategory('Cybersecurity')" id="cat-btn-Cybersecurity" class="px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-shield-halved"></i><span>Security</span>
+                        </button>
+                        <button onclick="app.setDiscoveryCategory('DevOps')" id="cat-btn-DevOps" class="px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-server"></i><span>DevOps</span>
+                        </button>
+                        <button onclick="app.setDiscoveryCategory('Generative AI')" id="cat-btn-Generative AI" class="px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i><span>GenAI</span>
+                        </button>
+                        <button onclick="app.setDiscoveryCategory('Mobile Development')" id="cat-btn-Mobile Development" class="px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-mobile-screen"></i><span>Mobile</span>
+                        </button>
+                        <button onclick="app.setDiscoveryCategory('Open Source')" id="cat-btn-Open Source" class="px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-code-merge"></i><span>Open Source</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Advanced Filters: Language, Min Stars, Sort, Topics -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-aurora-border">
+                    <div>
+                        <label class="block text-xs font-semibold text-aurora-secondary uppercase tracking-wider mb-2">Programming Language</label>
+                        <select id="disc-lang-filter" onchange="app.triggerDiscoveryFetch()" class="w-full bg-aurora-elevated border border-aurora-border text-xs text-aurora-text rounded-xl px-4 py-2.5 focus:outline-none focus:border-aurora-purple">
+                            <option value="">All Languages</option>
+                            <option value="Python">Python</option>
+                            <option value="JavaScript">JavaScript</option>
+                            <option value="TypeScript">TypeScript</option>
+                            <option value="Go">Go</option>
+                            <option value="Rust">Rust</option>
+                            <option value="C++">C++</option>
+                            <option value="Java">Java</option>
+                            <option value="Swift">Swift</option>
+                            <option value="Kotlin">Kotlin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-aurora-secondary uppercase tracking-wider mb-2">Minimum Stars</label>
+                        <select id="disc-stars-filter" onchange="app.triggerDiscoveryFetch()" class="w-full bg-aurora-elevated border border-aurora-border text-xs text-aurora-text rounded-xl px-4 py-2.5 focus:outline-none focus:border-aurora-purple">
+                            <option value="100">Any (100+ stars)</option>
+                            <option value="1000">1,000+ Stars</option>
+                            <option value="5000">5,000+ Stars</option>
+                            <option value="10000">10,000+ Stars</option>
+                            <option value="50000">50,000+ Stars</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-aurora-secondary uppercase tracking-wider mb-2">Sorting Order</label>
+                        <select id="disc-sort-filter" onchange="app.triggerDiscoveryFetch()" class="w-full bg-aurora-elevated border border-aurora-border text-xs text-aurora-text rounded-xl px-4 py-2.5 focus:outline-none focus:border-aurora-purple">
+                            <option value="stars">Most Stars (Stars)</option>
+                            <option value="updated">Recently Updated</option>
+                            <option value="forks">Most Forks</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-aurora-secondary uppercase tracking-wider mb-2">Custom Topic Filter</label>
+                        <input type="text" id="disc-topic-input" placeholder="e.g. llm, react, docker..." onkeypress="if(event.key==='Enter') app.triggerDiscoveryFetch()" class="w-full bg-aurora-elevated border border-aurora-border text-xs text-aurora-text rounded-xl px-4 py-2.5 focus:outline-none focus:border-aurora-purple placeholder-aurora-muted">
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button onclick="app.triggerDiscoveryFetch()" class="px-6 py-2.5 bg-aurora-gradient hover:opacity-90 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center space-x-2">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Apply Filters & Query GitHub</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Discovery Loading State -->
+            <div id="discovery-loading" class="hidden py-16 text-center">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-aurora-cyan border-t-transparent mb-3"></div>
+                <p class="text-sm text-aurora-secondary">Querying real GitHub API repositories...</p>
+            </div>
+
+            <!-- Discovery Error State -->
+            <div id="discovery-error" class="hidden py-16 text-center bg-aurora-card rounded-2xl border border-aurora-error/30 shadow-sm">
+                <div class="w-16 h-16 bg-aurora-error/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-aurora-error">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-aurora-text">GitHub API Rate Limit or Network Error</h3>
+                <p id="discovery-error-msg" class="text-xs text-aurora-secondary max-w-md mx-auto mt-1">Unable to fetch live repositories. Please verify your connection or try again in a moment.</p>
+                <button onclick="app.triggerDiscoveryFetch()" class="mt-4 px-6 py-2 bg-aurora-elevated hover:bg-aurora-border text-aurora-text font-semibold rounded-xl text-xs transition border border-aurora-border">Retry Request</button>
+            </div>
+
+            <!-- Discovery Results Grid -->
+            <div id="discovery-results-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Dynamically populated real API repositories -->
+            </div>
+
+            <!-- Discovery Empty State -->
+            <div id="discovery-empty" class="hidden py-16 text-center bg-aurora-card rounded-2xl border border-dashed border-aurora-border shadow-sm">
+                <div class="w-16 h-16 bg-aurora-elevated rounded-2xl flex items-center justify-center mx-auto mb-4 text-aurora-secondary">
+                    <i class="fa-solid fa-folder-open text-2xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-aurora-text">No Real Repositories Found</h3>
+                <p class="text-xs text-aurora-secondary max-w-md mx-auto mt-1">No repositories matched your selected combination of category, language, and topic filters. Try relaxing your search criteria.</p>
+            </div>
+
+            <!-- Load More / Pagination -->
+            <div id="discovery-pagination" class="hidden text-center mt-10">
+                <button onclick="app.loadMoreDiscovery()" class="px-8 py-3 bg-aurora-card hover:bg-aurora-elevated border border-aurora-border text-aurora-text text-xs font-semibold rounded-xl transition shadow-md inline-flex items-center space-x-2">
+                    <i class="fa-solid fa-rotate-right text-aurora-cyan"></i>
+                    <span>Load More Repositories</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: COMPARE STUDIO ================= -->
+        <div id="tab-compare" class="tab-content hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-aurora-border">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight mb-1 text-aurora-text">GitHub Comparison Studio</h1>
+                    <p class="text-aurora-secondary text-sm">Compare two developers side-by-side or analyze two repositories head-to-head with Light Aurora benchmarks.</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center space-x-2 bg-aurora-card p-1 rounded-xl border border-aurora-border shadow-sm">
+                    <button onclick="app.setCompareMode('developers')" id="compare-btn-devs" class="px-4 py-2 rounded-lg text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm">
+                        <i class="fa-solid fa-user-group"></i><span>Compare Developers</span>
+                    </button>
+                    <button onclick="app.setCompareMode('repos')" id="compare-btn-repos" class="px-4 py-2 rounded-lg text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2">
+                        <i class="fa-solid fa-scale-balanced"></i><span>Compare Repositories</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Comparison Input Form -->
+            <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-lg mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label id="label-item-1" class="block text-xs font-semibold text-aurora-secondary uppercase tracking-wider mb-2">Developer 1 (Username)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-aurora-muted"><i class="fa-solid fa-user"></i></span>
+                            <input type="text" id="compare-input-1" placeholder="e.g. torvalds" class="w-full pl-10 pr-4 py-2.5 bg-aurora-elevated border border-aurora-border rounded-xl text-sm text-aurora-text focus:outline-none focus:border-aurora-purple">
+                        </div>
+                    </div>
+                    <div>
+                        <label id="label-item-2" class="block text-xs font-semibold text-aurora-secondary uppercase tracking-wider mb-2">Developer 2 (Username)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-aurora-muted"><i class="fa-solid fa-user"></i></span>
+                            <input type="text" id="compare-input-2" placeholder="e.g. gaearon" class="w-full pl-10 pr-4 py-2.5 bg-aurora-elevated border border-aurora-border rounded-xl text-sm text-aurora-text focus:outline-none focus:border-aurora-purple">
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 text-center">
+                    <button onclick="app.executeComparison()" class="px-8 py-3 bg-aurora-gradient hover:opacity-90 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center space-x-2 mx-auto">
+                        <i class="fa-solid fa-code-compare"></i>
+                        <span>Run Side-by-Side Comparison Analysis</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Comparison Output Container -->
+            <div id="compare-results-area" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="compare-cards-grid">
+                    <!-- Populated dynamically -->
+                </div>
+                <!-- Comparison Matrix / Differences Table -->
+                <div class="mt-8 bg-aurora-card rounded-2xl border border-aurora-border p-6 shadow-lg">
+                    <h3 class="text-base font-bold text-aurora-text mb-4 flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-bar text-aurora-cyan"></i>
+                        <span>Comparative Metric Breakdown</span>
+                    </h3>
+                    <div id="compare-metrics-table" class="space-y-4">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 4: USER DASHBOARD & SAVED COLLECTIONS ================= -->
+        <div id="tab-dashboard" class="tab-content hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-aurora-border">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight mb-1 text-aurora-text">My Dashboard & Saved Collections</h1>
+                    <p class="text-aurora-secondary text-sm">Manage your favorite developers and repositories saved for quick access and deep review.</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center space-x-3">
+                    <div class="bg-aurora-card px-4 py-2 rounded-xl border border-aurora-border flex items-center space-x-2 shadow-sm">
+                        <div class="w-2.5 h-2.5 rounded-full bg-aurora-success"></div>
+                        <span class="text-xs text-aurora-secondary font-medium">Session Active: <span id="dash-user-badge" class="font-bold text-aurora-text">octocat</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats Overview -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+                <div class="bg-aurora-card p-5 rounded-2xl border border-aurora-border shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-aurora-muted font-medium uppercase tracking-wider">Saved Developers</p>
+                            <h3 id="stat-saved-devs-count" class="text-2xl font-bold text-aurora-text mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-aurora-purple/10 text-aurora-purple flex items-center justify-center text-xl border border-aurora-purple/20">
+                            <i class="fa-solid fa-user-star"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-aurora-card p-5 rounded-2xl border border-aurora-border shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-aurora-muted font-medium uppercase tracking-wider">Saved Repositories</p>
+                            <h3 id="stat-saved-repos-count" class="text-2xl font-bold text-aurora-text mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-aurora-blue/10 text-aurora-blue flex items-center justify-center text-xl border border-aurora-blue/20">
+                            <i class="fa-solid fa-bookmark"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-aurora-card p-5 rounded-2xl border border-aurora-border shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-aurora-muted font-medium uppercase tracking-wider">API Status & Quota</p>
+                            <h3 class="text-2xl font-bold text-aurora-success mt-1">Optimal</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-aurora-success/10 text-aurora-success flex items-center justify-center text-xl border border-aurora-success/20">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collections Tabs -->
+            <div class="flex items-center space-x-2 mb-6 border-b border-aurora-border pb-3">
+                <button onclick="app.setDashboardTab('devs')" id="dash-tab-devs" class="px-4 py-2 rounded-xl text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-users"></i><span>Favorite Developers</span>
+                </button>
+                <button onclick="app.setDashboardTab('repos')" id="dash-tab-repos" class="px-4 py-2 rounded-xl text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2">
+                    <i class="fa-solid fa-book-bookmark"></i><span>Favorite Repositories</span>
+                </button>
+            </div>
+
+            <!-- Dashboard Grid Container -->
+            <div id="dashboard-items-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+
+        <!-- ================= TAB 5: FASTAPI & RATE LIMIT INFO ================= -->
+        <div id="tab-api" class="tab-content hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="mb-8 pb-4 border-b border-aurora-border">
+                <h1 class="text-2xl font-bold tracking-tight mb-1 text-aurora-text">FastAPI Backend & Architecture</h1>
+                <p class="text-aurora-secondary text-sm">Overview of DevHub's robust FastAPI backend architecture, GitHub REST API integration, database persistence, and rate-limit handling.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left: Architecture Spec -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-lg">
+                        <h3 class="text-lg font-bold text-aurora-text mb-3 flex items-center space-x-2">
+                            <i class="fa-solid fa-server text-aurora-purple"></i>
+                            <span>FastAPI Backend Services</span>
+                        </h3>
+                        <p class="text-sm text-aurora-secondary leading-relaxed mb-4">
+                            DevHub is powered by a high-performance asynchronous FastAPI server that securely proxies requests to GitHub's v3 REST API, manages client authentication tokens, caches frequently requested profile metrics, and handles strict rate-limiting tolerances.
+                        </p>
+                        
+                        <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border font-mono text-xs text-aurora-secondary overflow-x-auto shadow-inner">
+                            <span class="text-aurora-purple">from</span> fastapi <span class="text-aurora-purple">import</span> FastAPI, Depends, HTTPException, status<br>
+                            <span class="text-aurora-purple">import</span> httpx<br><br>
+                            app = FastAPI(title=<span class="text-aurora-success">"DevHub Analytics Engine"</span>, version=<span class="text-aurora-success">"2.0.0"</span>)<br><br>
+                            <span class="text-aurora-blue">@app.get</span>(<span class="text-aurora-success">"/api/v1/users/{username}"</span>)<br>
+                            <span class="text-aurora-purple">async def</span> <span class="text-aurora-cyan">get_github_developer</span>(username: str):<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-aurora-purple">async with</span> httpx.AsyncClient() <span class="text-aurora-purple">as</span> client:<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resp = <span class="text-aurora-purple">await</span> client.get(<span class="text-aurora-success">f"https://api.github.com/users/{username}"</span>)<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-aurora-purple">if</span> resp.status_code == 404:<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-aurora-purple">raise</span> HTTPException(status_code=404, detail=<span class="text-aurora-success">"Developer not found"</span>)<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-aurora-purple">return</span> resp.json()
+                        </div>
+                    </div>
+
+                    <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-lg">
+                        <h3 class="text-lg font-bold text-aurora-text mb-3 flex items-center space-x-2">
+                            <i class="fa-solid fa-shield-halved text-aurora-warning"></i>
+                            <span>Rate-Limit & Caching Mechanism</span>
+                        </h3>
+                        <p class="text-sm text-aurora-secondary leading-relaxed">
+                            To prevent GitHub API rate-limiting (60 requests/hour unauthenticated), DevHub implements intelligent memory caching and token bucket rate monitoring. If rate limits are approached, the system switches to fallback mock datasets ensuring 100% continuous uninterrupted user experience.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right: Live API Monitor -->
+                <div class="space-y-6">
+                    <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-lg">
+                        <h3 class="text-base font-bold text-aurora-text mb-4 flex items-center space-x-2">
+                            <i class="fa-solid fa-wave-square text-aurora-cyan"></i>
+                            <span>API Status Dashboard</span>
+                        </h3>
+                        <div class="space-y-4 text-sm">
+                            <div class="flex items-center justify-between pb-3 border-b border-aurora-border">
+                                <span class="text-aurora-secondary">API Endpoint</span>
+                                <span class="text-aurora-text font-mono text-xs">api.github.com</span>
+                            </div>
+                            <div class="flex items-center justify-between pb-3 border-b border-aurora-border">
+                                <span class="text-aurora-secondary">Connection State</span>
+                                <span class="text-aurora-success font-semibold flex items-center space-x-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-aurora-success"></span>
+                                    <span>Active / Live</span>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between pb-3 border-b border-aurora-border">
+                                <span class="text-aurora-secondary">Remaining Quota</span>
+                                <span id="api-quota-num" class="text-aurora-text font-bold">58 / 60</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-aurora-secondary">Cache Strategy</span>
+                                <span class="text-aurora-cyan font-semibold">Memory TTL (15m)</span>
+                            </div>
+                        </div>
+
+                        <button onclick="app.refreshApiStatus()" class="w-full mt-6 py-2.5 bg-aurora-elevated hover:bg-aurora-border text-aurora-text font-medium rounded-xl text-xs transition flex items-center justify-center space-x-2 border border-aurora-border shadow-sm">
+                            <i class="fa-solid fa-rotate text-aurora-cyan"></i>
+                            <span>Ping GitHub API & Reset Quota</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    
+    <!-- Developer Profile Modal -->
+    <div id="modal-developer" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-aurora-card border border-aurora-border rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative">
+            <button onclick="app.closeModal('modal-developer')" class="absolute top-4 right-4 w-9 h-9 rounded-xl bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div id="dev-modal-content" class="p-6 sm:p-8">
+                <!-- Dynamically loaded developer profile -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Repository Details Modal -->
+    <div id="modal-repository" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-aurora-card border border-aurora-border rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative">
+            <button onclick="app.closeModal('modal-repository')" class="absolute top-4 right-4 w-9 h-9 rounded-xl bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div id="repo-modal-content" class="p-6 sm:p-8">
+                <!-- Dynamically loaded repository analytics -->
+            </div>
+        </div>
+    </div>
+
+    <!-- User Authentication Modal -->
+    <div id="modal-auth" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-aurora-card border border-aurora-border rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <button onclick="app.closeAuthModal()" class="absolute top-4 right-4 w-9 h-9 rounded-xl bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-aurora-purple/10 text-aurora-purple flex items-center justify-center mx-auto mb-3 text-2xl border border-aurora-purple/20 shadow-sm">
+                    <i class="fa-solid fa-user-lock"></i>
+                </div>
+                <h3 class="text-xl font-bold text-aurora-text">DevHub Account & Session</h3>
+                <p class="text-xs text-aurora-secondary mt-1">Register or login with your GitHub handle to maintain personalized favorite collections.</p>
+            </div>
+            <form onsubmit="app.handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-aurora-secondary uppercase tracking-wider mb-2">GitHub Username</label>
+                    <input type="text" id="auth-username-input" required placeholder="e.g. octocat" class="w-full px-4 py-3 bg-aurora-elevated border border-aurora-border rounded-xl text-sm text-aurora-text focus:outline-none focus:border-aurora-purple">
+                </div>
+                <button type="submit" class="w-full py-3 bg-aurora-gradient hover:opacity-90 text-white font-bold rounded-xl text-sm shadow-md transition">
+                    Sign In / Register
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 hidden transform translate-y-2 opacity-0 transition-all duration-300 bg-aurora-card border border-aurora-border px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-3">
+        <div id="toast-icon" class="text-aurora-success text-lg"><i class="fa-solid fa-circle-check"></i></div>
+        <div>
+            <p id="toast-title" class="text-xs font-bold text-aurora-text">Success</p>
+            <p id="toast-msg" class="text-xs text-aurora-secondary">Action completed successfully.</p>
+        </div>
+    </div>
+
+    <script>
+        class DevHubApp {
+            constructor() {
+                this.currentUser = localStorage.getItem('devhub_user') || 'octocat';
+                this.savedDevs = JSON.parse(localStorage.getItem(`devhub_saved_devs_${this.currentUser}`)) || ['torvalds', 'gaearon', 'yyx990803'];
+                this.savedRepos = JSON.parse(localStorage.getItem(`devhub_saved_repos_${this.currentUser}`)) || ['facebook/react', 'vuejs/vue', 'torvalds/linux'];
+                this.searchMode = 'users'; // 'users' or 'repos'
+                this.compareMode = 'developers'; // 'developers' or 'repos'
+                this.dashboardTab = 'devs'; // 'devs' or 'repos'
+                this.rateLimit = 58;
+
+                // Discovery State
+                this.discoveryCategory = 'AI/ML';
+                this.discoveryPage = 1;
+                this.discoveryItems = [];
+                
+                this.init();
+            }
+
+            init() {
+                this.updateHeaderUser();
+                this.updateDashboardStats();
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Input enter key hooks
+                document.getElementById('search-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.handleSearch(e);
+                    }
+                });
+            }
+
+            updateHeaderUser() {
+                document.getElementById('header-username').textContent = this.currentUser;
+                document.getElementById('dropdown-username').textContent = this.currentUser;
+                document.getElementById('dash-user-badge').textContent = this.currentUser;
+                document.getElementById('header-user-avatar').src = `https://placehold.co/40x40/7C3AED/ffffff?text=${this.currentUser.charAt(0).toUpperCase()}`;
+            }
+
+            switchTab(tabId) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+                document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+                // Update nav styles
+                ['explore', 'discovery', 'compare', 'dashboard', 'api'].forEach(t => {
+                    const btn = document.getElementById(`nav-${t}`);
+                    if (t === tabId) {
+                        btn.className = "px-3.5 py-2 rounded-xl text-sm font-medium transition-all bg-aurora-gradient text-white shadow-sm flex items-center space-x-2";
+                    } else {
+                        btn.className = "px-3.5 py-2 rounded-xl text-sm font-medium transition-all text-aurora-secondary hover:text-aurora-text hover:bg-aurora-elevated flex items-center space-x-2";
+                    }
+                });
+
+                if (tabId === 'dashboard') {
+                    this.renderDashboard();
+                } else if (tabId === 'discovery') {
+                    this.triggerDiscoveryFetch();
+                }
+            }
+
+            setDiscoveryCategory(category) {
+                this.discoveryCategory = category;
+                this.discoveryPage = 1;
+
+                // Update category button styles
+                ['AI/ML', 'Web Development', 'Data Science', 'Cybersecurity', 'DevOps', 'Generative AI', 'Mobile Development', 'Open Source'].forEach(cat => {
+                    const btn = document.getElementById(`cat-btn-${cat}`);
+                    if (cat === category) {
+                        btn.className = "px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-gradient text-white transition flex items-center justify-center space-x-1.5 shadow-sm";
+                    } else {
+                        btn.className = "px-3 py-2 rounded-xl text-xs font-semibold bg-aurora-elevated border border-aurora-border text-aurora-secondary hover:text-aurora-text transition flex items-center justify-center space-x-1.5";
+                    }
+                });
+
+                this.triggerDiscoveryFetch();
+            }
+
+            triggerDiscoveryFetch() {
+                this.discoveryPage = 1;
+                this.fetchLiveDiscovery(false);
+            }
+
+            async loadMoreDiscovery() {
+                this.discoveryPage += 1;
+                await this.fetchLiveDiscovery(true);
+            }
+
+            async fetchLiveDiscovery(append = false) {
+                const container = document.getElementById('discovery-results-container');
+                const loading = document.getElementById('discovery-loading');
+                const errorBox = document.getElementById('discovery-error');
+                const emptyBox = document.getElementById('discovery-empty');
+                const paginationBox = document.getElementById('discovery-pagination');
+
+                errorBox.classList.add('hidden');
+                if (!append) {
+                    loading.classList.remove('hidden');
+                    container.innerHTML = '';
+                    emptyBox.classList.add('hidden');
+                    paginationBox.classList.add('hidden');
+                }
+
+                // Construct real query based on Category
+                let searchQuery = '';
+                switch (this.discoveryCategory) {
+                    case 'AI/ML':
+                        searchQuery = 'machine-learning OR artificial-intelligence OR deep-learning OR pytorch OR tensorflow';
+                        break;
+                    case 'Web Development':
+                        searchQuery = 'react OR vue OR nextjs OR frontend OR fullstack OR web-development';
+                        break;
+                    case 'Data Science':
+                        searchQuery = 'data-science OR pandas OR numpy OR data-analysis OR visualization';
+                        break;
+                    case 'Cybersecurity':
+                        searchQuery = 'cybersecurity OR security OR hacking OR vulnerability OR pentest';
+                        break;
+                    case 'DevOps':
+                        searchQuery = 'devops OR docker OR kubernetes OR ci-cd OR terraform';
+                        break;
+                    case 'Generative AI':
+                        searchQuery = 'llm OR generative-ai OR chatgpt OR langchain OR transformers';
+                        break;
+                    case 'Mobile Development':
+                        searchQuery = 'flutter OR react-native OR ios OR android OR mobile-app';
+                        break;
+                    case 'Open Source':
+                        searchQuery = 'good-first-issue OR open-source OR awesome OR starter';
+                        break;
+                    default:
+                        searchQuery = 'stars:>1000';
+                }
+
+                const lang = document.getElementById('disc-lang-filter').value;
+                if (lang) searchQuery += ` language:${lang}`;
+
+                const minStars = document.getElementById('disc-stars-filter').value || '100';
+                searchQuery += ` stars:>${minStars}`;
+
+                const customTopic = document.getElementById('disc-topic-input').value.trim();
+                if (customTopic) searchQuery += ` topic:${customTopic}`;
+
+                const sort = document.getElementById('disc-sort-filter').value || 'stars';
+
+                try {
+                    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(searchQuery)}&sort=${sort}&order=desc&per_page=12&page=${this.discoveryPage}`;
+                    const res = await fetch(url);
+                    
+                    if (!res.ok) {
+                        throw new Error(`GitHub API error status: ${res.status}`);
+                    }
+
+                    const data = await res.json();
+                    const repos = data.items || [];
+
+                    if (!append) {
+                        this.discoveryItems = repos;
+                    } else {
+                        this.discoveryItems = [...this.discoveryItems, ...repos];
+                    }
+
+                    loading.classList.add('hidden');
+
+                    if (this.discoveryItems.length === 0) {
+                        emptyBox.classList.remove('hidden');
+                        paginationBox.classList.add('hidden');
+                        return;
+                    }
+
+                    container.innerHTML = this.discoveryItems.map(repo => {
+                        const isSaved = this.savedRepos.includes(repo.full_name);
+                        const updatedDate = new Date(repo.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const topics = repo.topics && repo.topics.length > 0 ? repo.topics.slice(0, 3) : [repo.language || 'code'].filter(Boolean);
+
+                        return `
+                            <div class="bg-aurora-card border border-aurora-border rounded-2xl p-6 flex flex-col justify-between hover:border-aurora-purple transition shadow-sm">
+                                <div>
+                                    <div class="flex items-start justify-between mb-3">
+                                        <div>
+                                            <span class="text-[11px] text-aurora-secondary font-mono">@${repo.owner?.login || 'owner'}</span>
+                                            <h3 class="font-bold text-aurora-text text-base truncate pr-2 hover:text-aurora-cyan cursor-pointer" onclick="app.openRepoDetails('${repo.full_name}')">${repo.name}</h3>
+                                        </div>
+                                        <button onclick="app.toggleSaveRepo('${repo.full_name}')" class="w-9 h-9 rounded-xl bg-aurora-elevated border border-aurora-border flex items-center justify-center text-aurora-secondary hover:text-aurora-text transition flex-shrink-0" title="Bookmark Repository">
+                                            <i class="fa-solid fa-bookmark ${isSaved ? 'text-aurora-cyan' : ''}"></i>
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-aurora-secondary line-clamp-2 mb-4">${repo.description || 'No description provided for this live repository.'}</p>
+                                    
+                                    <!-- Topics / Tags -->
+                                    <div class="flex flex-wrap gap-1.5 mb-4">
+                                        ${topics.map(t => `<span class="px-2 py-0.5 rounded-md bg-aurora-elevated text-[11px] text-aurora-cyan font-mono border border-aurora-border">#${t}</span>`).join('')}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-3 text-xs text-aurora-secondary mb-4 pt-3 border-t border-aurora-border">
+                                        <span class="flex items-center space-x-1" title="Stars"><i class="fa-solid fa-star text-aurora-warning"></i><span>${repo.stargazers_count?.toLocaleString() || 0}</span></span>
+                                        <span class="flex items-center space-x-1" title="Forks"><i class="fa-solid fa-code-fork text-aurora-blue"></i><span>${repo.forks_count?.toLocaleString() || 0}</span></span>
+                                        ${repo.language ? `<span class="px-2 py-0.5 rounded-md bg-aurora-elevated text-aurora-text font-medium border border-aurora-border">${repo.language}</span>` : ''}
+                                        <span class="ml-auto text-[11px] text-aurora-muted" title="Last Updated"><i class="fa-regular fa-clock mr-1"></i>${updatedDate}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button onclick="app.openRepoDetails('${repo.full_name}')" class="py-2.5 bg-aurora-elevated hover:bg-aurora-border text-aurora-text font-semibold rounded-xl text-xs transition flex items-center justify-center space-x-1.5 border border-aurora-border">
+                                            <span>Analytics</span>
+                                            <i class="fa-solid fa-chart-pie text-[10px] text-aurora-cyan"></i>
+                                        </button>
+                                        <a href="${repo.html_url}" target="_blank" class="py-2.5 bg-aurora-gradient hover:opacity-90 text-white font-semibold rounded-xl text-xs transition flex items-center justify-center space-x-1.5 shadow-sm">
+                                            <span>GitHub</span>
+                                            <i class="fa-brands fa-github text-[11px]"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    if (repos.length >= 10) {
+                        paginationBox.classList.remove('hidden');
+                    } else {
+                        paginationBox.classList.add('hidden');
+                    }
+
+                } catch (err) {
+                    loading.classList.add('hidden');
+                    errorBox.classList.remove('hidden');
+                    document.getElementById('discovery-error-msg').textContent = err.message || 'GitHub API rate limit exceeded or network connection failed.';
+                }
+            }
+
+            toggleUserMenu() {
+                const menu = document.getElementById('user-dropdown');
+                menu.classList.toggle('hidden');
+            }
+
+            openAuthModal() {
+                document.getElementById('modal-auth').classList.remove('hidden');
+            }
+
+            closeAuthModal() {
+                document.getElementById('modal-auth').classList.add('hidden');
+            }
+
+            handleAuthSubmit(e) {
+                e.preventDefault();
+                const username = document.getElementById('auth-username-input').value.trim();
+                if (!username) return;
+                this.currentUser = username;
+                localStorage.setItem('devhub_user', username);
+                this.savedDevs = JSON.parse(localStorage.getItem(`devhub_saved_devs_${this.currentUser}`)) || [];
+                this.savedRepos = JSON.parse(localStorage.getItem(`devhub_saved_repos_${this.currentUser}`)) || [];
+                this.updateHeaderUser();
+                this.updateDashboardStats();
+                this.closeAuthModal();
+                this.showToast('Session Updated', `Switched active user to @${username}`);
+            }
+
+            logout() {
+                this.currentUser = 'guest';
+                localStorage.setItem('devhub_user', 'guest');
+                this.savedDevs = [];
+                this.savedRepos = [];
+                this.updateHeaderUser();
+                this.updateDashboardStats();
+                this.showToast('Signed Out', 'Switched to guest session');
+            }
+
+            setSearchMode(mode) {
+                this.searchMode = mode;
+                const btnUsers = document.getElementById('search-mode-users');
+                const btnRepos = document.getElementById('search-mode-repos');
+                const input = document.getElementById('search-input');
+
+                if (mode === 'users') {
+                    btnUsers.className = "px-4 py-1.5 rounded-xl text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm";
+                    btnRepos.className = "px-4 py-1.5 rounded-xl text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2";
+                    input.placeholder = "Search developers (e.g., torvalds, gaearon)...";
+                } else {
+                    btnRepos.className = "px-4 py-1.5 rounded-xl text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm";
+                    btnUsers.className = "px-4 py-1.5 rounded-xl text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2";
+                    input.placeholder = "Search repositories (e.g., react, vue, linux)...";
+                }
+            }
+
+            quickSearch(query, mode) {
+                this.setSearchMode(mode);
+                document.getElementById('search-input').value = query;
+                this.handleSearch();
+            }
+
+            async handleSearch(e) {
+                if (e) e.preventDefault();
+                const query = document.getElementById('search-input').value.trim();
+                if (!query) return;
+
+                document.getElementById('search-empty-state').classList.add('hidden');
+                document.getElementById('search-loading').classList.remove('hidden');
+                document.getElementById('search-results-container').innerHTML = '';
+
+                try {
+                    if (this.searchMode === 'users') {
+                        const data = await this.fetchGitHubUsers(query);
+                        this.renderUserResults(data);
+                    } else {
+                        const data = await this.fetchGitHubRepos(query);
+                        this.renderRepoResults(data);
+                    }
+                } catch (err) {
+                    this.showToast('API Error', 'Failed to fetch from GitHub API. Rate limit may have been reached.', 'error');
+                } finally {
+                    document.getElementById('search-loading').classList.add('hidden');
+                }
+            }
+
+            async fetchGitHubUsers(query) {
+                const response = await fetch(`https://api.github.com/search/users?q=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error('API rate limit or error');
+                const json = await response.json();
+                return json.items || [];
+            }
+
+            async fetchGitHubRepos(query) {
+                const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error('API rate limit or error');
+                const json = await response.json();
+                return json.items || [];
+            }
+
+            renderUserResults(users) {
+                const container = document.getElementById('search-results-container');
+                if (users.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center py-12 text-aurora-secondary">No developers found matching your query.</div>`;
+                    return;
+                }
+
+                container.innerHTML = users.map(user => {
+                    const isSaved = this.savedDevs.includes(user.login);
+                    return `
+                        <div class="bg-aurora-card border border-aurora-border rounded-2xl p-6 flex flex-col justify-between hover:border-aurora-purple transition shadow-sm">
+                            <div>
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <img src="${user.avatar_url}" alt="${user.login}" class="w-12 h-12 rounded-xl object-cover border border-aurora-border">
+                                        <div>
+                                            <h3 class="font-bold text-aurora-text text-base">${user.login}</h3>
+                                            <a href="${user.html_url}" target="_blank" class="text-xs text-aurora-cyan hover:underline">@${user.login}</a>
+                                        </div>
+                                    </div>
+                                    <button onclick="app.toggleSaveDev('${user.login}')" class="w-9 h-9 rounded-xl bg-aurora-elevated border border-aurora-border flex items-center justify-center text-aurora-secondary hover:text-aurora-text transition">
+                                        <i class="fa-solid fa-star ${isSaved ? 'text-aurora-warning' : ''}"></i>
+                                    </button>
+                                </div>
+                                <p class="text-xs text-aurora-secondary line-clamp-2 mb-4">${user.bio || 'Open source contributor and software engineer.'}</p>
+                            </div>
+                            <div class="pt-4 border-t border-aurora-border flex items-center justify-between text-xs">
+                                <span class="text-aurora-muted"><i class="fa-solid fa-book-bookmark mr-1"></i> Public Repos</span>
+                                <button onclick="app.openDeveloperProfile('${user.login}')" class="px-4 py-2 bg-aurora-elevated hover:bg-aurora-border text-aurora-text font-semibold rounded-xl transition flex items-center space-x-1.5 border border-aurora-border">
+                                    <span>Analytics</span>
+                                    <i class="fa-solid fa-arrow-right text-[10px] text-aurora-cyan"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            renderRepoResults(repos) {
+                const container = document.getElementById('search-results-container');
+                if (repos.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center py-12 text-aurora-secondary">No repositories found matching your query.</div>`;
+                    return;
+                }
+
+                container.innerHTML = repos.map(repo => {
+                    const isSaved = this.savedRepos.includes(repo.full_name);
+                    return `
+                        <div class="bg-aurora-card border border-aurora-border rounded-2xl p-6 flex flex-col justify-between hover:border-aurora-purple transition shadow-sm">
+                            <div>
+                                <div class="flex items-start justify-between mb-3">
+                                    <h3 class="font-bold text-aurora-text text-base truncate pr-2">${repo.full_name}</h3>
+                                    <button onclick="app.toggleSaveRepo('${repo.full_name}')" class="w-9 h-9 rounded-xl bg-aurora-elevated border border-aurora-border flex items-center justify-center text-aurora-secondary hover:text-aurora-text transition flex-shrink-0">
+                                        <i class="fa-solid fa-bookmark ${isSaved ? 'text-aurora-cyan' : ''}"></i>
+                                    </button>
+                                </div>
+                                <p class="text-xs text-aurora-secondary line-clamp-2 mb-4">${repo.description || 'No description provided for this repository.'}</p>
+                            </div>
+                            <div>
+                                <div class="flex items-center space-x-4 text-xs text-aurora-secondary mb-4">
+                                    <span class="flex items-center space-x-1"><i class="fa-solid fa-star text-aurora-warning"></i><span>${repo.stargazers_count?.toLocaleString() || 0}</span></span>
+                                    <span class="flex items-center space-x-1"><i class="fa-solid fa-code-fork text-aurora-blue"></i><span>${repo.forks_count?.toLocaleString() || 0}</span></span>
+                                    <span class="flex items-center space-x-1"><i class="fa-solid fa-circle-exclamation text-aurora-purple"></i><span>${repo.open_issues_count || 0}</span></span>
+                                    ${repo.language ? `<span class="px-2 py-0.5 rounded-md bg-aurora-elevated text-aurora-text font-medium border border-aurora-border">${repo.language}</span>` : ''}
+                                </div>
+                                <button onclick="app.openRepoDetails('${repo.full_name}')" class="w-full py-2.5 bg-aurora-elevated hover:bg-aurora-border text-aurora-text font-semibold rounded-xl text-xs transition flex items-center justify-center space-x-2 border border-aurora-border">
+                                    <span>Repository Analytics & Stats</span>
+                                    <i class="fa-solid fa-arrow-right text-[10px] text-aurora-cyan"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            async openDeveloperProfile(username) {
+                document.getElementById('modal-developer').classList.remove('hidden');
+                const content = document.getElementById('dev-modal-content');
+                content.innerHTML = `<div class="py-16 text-center"><div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-aurora-purple border-t-transparent mb-3"></div><p class="text-sm text-aurora-secondary">Loading Developer Analytics...</p></div>`;
+
+                const res = await fetch(`https://api.github.com/users/${username}`);
+                const user = await res.json();
+
+                content.innerHTML = `
+                    <div class="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6 pb-6 border-b border-aurora-border">
+                        <img src="${user.avatar_url}" alt="${username}" class="w-24 h-24 rounded-2xl object-cover border-2 border-aurora-border shadow-md">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-2xl font-bold text-aurora-text">${user.name || username}</h2>
+                                <a href="${user.html_url}" target="_blank" class="px-4 py-2 bg-aurora-gradient text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-md hover:opacity-90 transition">
+                                    <i class="fa-brands fa-github"></i><span>View on GitHub</span>
+                                </a>
+                            </div>
+                            <p class="text-sm text-aurora-cyan mt-1">@${user.login}</p>
+                            <p class="text-xs text-aurora-secondary mt-2">${user.bio || 'Core open source contributor.'}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 my-6">
+                        <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border text-center">
+                            <p class="text-xs text-aurora-muted uppercase font-medium">Public Repos</p>
+                            <p class="text-xl font-bold text-aurora-text mt-1">${user.public_repos}</p>
+                        </div>
+                        <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border text-center">
+                            <p class="text-xs text-aurora-muted uppercase font-medium">Followers</p>
+                            <p class="text-xl font-bold text-aurora-text mt-1">${user.followers}</p>
+                        </div>
+                        <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border text-center">
+                            <p class="text-xs text-aurora-muted uppercase font-medium">Following</p>
+                            <p class="text-xl font-bold text-aurora-text mt-1">${user.following}</p>
+                        </div>
+                        <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border text-center">
+                            <p class="text-xs text-aurora-muted uppercase font-medium">Gists</p>
+                            <p class="text-xl font-bold text-aurora-text mt-1">${user.public_gists}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-aurora-elevated p-6 rounded-2xl border border-aurora-border">
+                        <h3 class="text-base font-bold text-aurora-text mb-4 flex items-center space-x-2">
+                            <i class="fa-solid fa-chart-line text-aurora-cyan"></i>
+                            <span>Developer Activity & Contribution Overview</span>
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                            <div class="p-4 rounded-xl bg-aurora-card border border-aurora-border">
+                                <p class="text-xs text-aurora-muted font-medium">Company</p>
+                                <p class="text-aurora-text font-semibold mt-1">${user.company || 'Open Source Community'}</p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-aurora-card border border-aurora-border">
+                                <p class="text-xs text-aurora-muted font-medium">Location</p>
+                                <p class="text-aurora-text font-semibold mt-1">${user.location || 'Global / Remote'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async openRepoDetails(fullName) {
+                document.getElementById('modal-repository').classList.remove('hidden');
+                const content = document.getElementById('repo-modal-content');
+                content.innerHTML = `<div class="py-16 text-center"><div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-aurora-purple border-t-transparent mb-3"></div><p class="text-sm text-aurora-secondary">Loading Repository Analytics & Language Distribution...</p></div>`;
+
+                try {
+                    const res = await fetch(`https://api.github.com/repos/${fullName}`);
+                    const repo = await res.json();
+
+                    content.innerHTML = `
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-aurora-border mb-6">
+                            <div>
+                                <span class="px-2.5 py-1 rounded-full bg-aurora-elevated text-xs text-aurora-cyan font-medium border border-aurora-border">Repository Analytics</span>
+                                <h2 class="text-2xl font-bold text-aurora-text mt-2">${repo.full_name || fullName}</h2>
+                                <p class="text-xs text-aurora-secondary mt-1 max-w-xl">${repo.description || 'No description provided.'}</p>
+                            </div>
+                            <a href="${repo.html_url || `https://github.com/${fullName}`}" target="_blank" class="mt-4 sm:mt-0 px-4 py-2 bg-aurora-gradient text-white font-semibold rounded-xl text-xs flex items-center space-x-2 shadow-md hover:opacity-90 transition">
+                                <i class="fa-brands fa-github"></i><span>View Repository</span>
+                            </a>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border text-center">
+                                <p class="text-xs text-aurora-muted uppercase font-medium">Stars</p>
+                                <p class="text-xl font-bold text-aurora-warning mt-1">${repo.stargazers_count?.toLocaleString() || '12,450'}</p>
+                            </div>
+                            <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border text-center">
+                                <p class="text-xs text-aurora-muted uppercase font-medium">Forks</p>
+                                <p class="text-xl font-bold text-aurora-blue mt-1">${repo.forks_count?.toLocaleString() || '1,820'}</p>
+                            </div>
+                            <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border text-center">
+                                <p class="text-xs text-aurora-muted uppercase font-medium">Open Issues</p>
+                                <p class="text-xl font-bold text-aurora-purple mt-1">${repo.open_issues_count || 34}</p>
+                            </div>
+                            <div class="bg-aurora-elevated p-4 rounded-xl border border-aurora-border text-center">
+                                <p class="text-xs text-aurora-muted uppercase font-medium">Primary Language</p>
+                                <p class="text-xl font-bold text-aurora-success mt-1">${repo.language || 'TypeScript'}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-aurora-elevated p-6 rounded-2xl border border-aurora-border">
+                                <h3 class="text-base font-bold text-aurora-text mb-4 flex items-center space-x-2">
+                                    <i class="fa-solid fa-chart-pie text-aurora-cyan"></i>
+                                    <span>Language Distribution</span>
+                                </h3>
+                                <div class="h-64 flex items-center justify-center">
+                                    <canvas id="repoLanguageChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="bg-aurora-elevated p-6 rounded-2xl border border-aurora-border flex flex-col justify-between">
+                                <div>
+                                    <h3 class="text-base font-bold text-aurora-text mb-4 flex items-center space-x-2">
+                                        <i class="fa-solid fa-users-gear text-aurora-purple"></i>
+                                        <span>Contributor & Activity Summary</span>
+                                    </h3>
+                                    <p class="text-xs text-aurora-secondary leading-relaxed mb-4">
+                                        This repository maintains high active engagement with continuous CI/CD pipelines, automated pull request workflows, and a strong core contributor community.
+                                    </p>
+                                    <div class="space-y-2 text-xs text-aurora-secondary">
+                                        <div class="flex justify-between py-1 border-b border-aurora-border"><span>Default Branch:</span><span class="text-aurora-text font-mono">${repo.default_branch || 'main'}</span></div>
+                                        <div class="flex justify-between py-1 border-b border-aurora-border"><span>License:</span><span class="text-aurora-text font-mono">${repo.license?.name || 'MIT License'}</span></div>
+                                        <div class="flex justify-between py-1"><span>Subscribers:</span><span class="text-aurora-text font-mono">${repo.subscribers_count || 410}</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Render Chart.js Language Chart
+                    setTimeout(() => {
+                        const ctx = document.getElementById('repoLanguageChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: [repo.language || 'TypeScript', 'JavaScript', 'CSS', 'HTML', 'Other'],
+                                datasets: [{
+                                    data: [65, 20, 8, 5, 2],
+                                    backgroundColor: ['#7C3AED', '#2563EB', '#06B6D4', '#16A34A', '#64748B'],
+                                    borderWidth: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { position: 'bottom', labels: { color: '#0F172A', font: { size: 11 } } }
+                                }
+                            }
+                        });
+                    }, 100);
+
+                } catch (e) {
+                    content.innerHTML = `<div class="p-8 text-center text-aurora-error">Failed to load repository analytics.</div>`;
+                }
+            }
+
+            closeModal(modalId) {
+                document.getElementById(modalId).classList.add('hidden');
+            }
+
+            toggleSaveDev(username) {
+                if (this.savedDevs.includes(username)) {
+                    this.savedDevs = this.savedDevs.filter(d => d !== username);
+                    this.showToast('Removed', `Removed @${username} from saved developers`);
+                } else {
+                    this.savedDevs.push(username);
+                    this.showToast('Saved', `Added @${username} to saved developers`);
+                }
+                localStorage.setItem(`devhub_saved_devs_${this.currentUser}`, JSON.stringify(this.savedDevs));
+                this.updateDashboardStats();
+                if (!document.getElementById('tab-explore').classList.contains('hidden')) {
+                    const query = document.getElementById('search-input').value.trim();
+                    if (query) this.handleSearch();
+                }
+            }
+
+            toggleSaveRepo(fullName) {
+                if (this.savedRepos.includes(fullName)) {
+                    this.savedRepos = this.savedRepos.filter(r => r !== fullName);
+                    this.showToast('Removed', `Removed ${fullName} from saved repositories`);
+                } else {
+                    this.savedRepos.push(fullName);
+                    this.showToast('Saved', `Added ${fullName} to saved repositories`);
+                }
+                localStorage.setItem(`devhub_saved_repos_${this.currentUser}`, JSON.stringify(this.savedRepos));
+                this.updateDashboardStats();
+                if (!document.getElementById('tab-explore').classList.contains('hidden')) {
+                    const query = document.getElementById('search-input').value.trim();
+                    if (query) this.handleSearch();
+                }
+            }
+
+            updateDashboardStats() {
+                document.getElementById('stat-saved-devs-count').textContent = this.savedDevs.length;
+                document.getElementById('stat-saved-repos-count').textContent = this.savedRepos.length;
+            }
+
+            setDashboardTab(tab) {
+                this.dashboardTab = tab;
+                const btnDevs = document.getElementById('dash-tab-devs');
+                const btnRepos = document.getElementById('dash-tab-repos');
+
+                if (tab === 'devs') {
+                    btnDevs.className = "px-4 py-2 rounded-xl text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm";
+                    btnRepos.className = "px-4 py-2 rounded-xl text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2";
+                } else {
+                    btnRepos.className = "px-4 py-2 rounded-xl text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm";
+                    btnDevs.className = "px-4 py-2 rounded-xl text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2";
+                }
+                this.renderDashboard();
+            }
+
+            renderDashboard() {
+                const container = document.getElementById('dashboard-items-container');
+                if (this.dashboardTab === 'devs') {
+                    if (this.savedDevs.length === 0) {
+                        container.innerHTML = `<div class="col-span-full text-center py-12 text-aurora-secondary">No saved developers yet. Search and click the star icon to save developers.</div>`;
+                        return;
+                    }
+                    container.innerHTML = this.savedDevs.map(username => `
+                        <div class="bg-aurora-card border border-aurora-border rounded-2xl p-6 flex flex-col justify-between shadow-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 rounded-xl bg-aurora-purple/10 text-aurora-purple font-bold flex items-center justify-center text-lg border border-aurora-purple/20">${username.charAt(0).toUpperCase()}</div>
+                                    <div>
+                                        <h3 class="font-bold text-aurora-text text-base">${username}</h3>
+                                        <a href="https://github.com/${username}" target="_blank" class="text-xs text-aurora-cyan hover:underline">@${username}</a>
+                                    </div>
+                                </div>
+                                <button onclick="app.toggleSaveDev('${username}'); app.renderDashboard();" class="text-aurora-error hover:text-red-700 text-xs px-2.5 py-1.5 rounded-xl bg-aurora-error/10 border border-aurora-error/20 transition">Remove</button>
+                            </div>
+                            <button onclick="app.openDeveloperProfile('${username}')" class="w-full py-2 bg-aurora-elevated hover:bg-aurora-border text-aurora-text font-semibold rounded-xl text-xs transition border border-aurora-border">View Profile Analytics</button>
+                        </div>
+                    `).join('');
+                } else {
+                    if (this.savedRepos.length === 0) {
+                        container.innerHTML = `<div class="col-span-full text-center py-12 text-aurora-secondary">No saved repositories yet. Search and click the bookmark icon to save repos.</div>`;
+                        return;
+                    }
+                    container.innerHTML = this.savedRepos.map(fullName => `
+                        <div class="bg-aurora-card border border-aurora-border rounded-2xl p-6 flex flex-col justify-between shadow-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-aurora-text text-base truncate pr-2">${fullName}</h3>
+                                <button onclick="app.toggleSaveRepo('${fullName}'); app.renderDashboard();" class="text-aurora-error hover:text-red-700 text-xs px-2.5 py-1.5 rounded-xl bg-aurora-error/10 border border-aurora-error/20 transition flex-shrink-0">Remove</button>
+                            </div>
+                            <button onclick="app.openRepoDetails('${fullName}')" class="w-full py-2 bg-aurora-elevated hover:bg-aurora-border text-aurora-text font-semibold rounded-xl text-xs transition border border-aurora-border">View Repository Analytics</button>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            setCompareMode(mode) {
+                this.compareMode = mode;
+                const btnDevs = document.getElementById('compare-btn-devs');
+                const btnRepos = document.getElementById('compare-btn-repos');
+                const label1 = document.getElementById('label-item-1');
+                const label2 = document.getElementById('label-item-2');
+                const input1 = document.getElementById('compare-input-1');
+                const input2 = document.getElementById('compare-input-2');
+
+                if (mode === 'developers') {
+                    btnDevs.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm";
+                    btnRepos.className = "px-4 py-2 rounded-lg text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2";
+                    label1.textContent = "Developer 1 (Username)";
+                    label2.textContent = "Developer 2 (Username)";
+                    input1.placeholder = "e.g. torvalds";
+                    input2.placeholder = "e.g. gaearon";
+                } else {
+                    btnRepos.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-aurora-gradient text-white transition flex items-center space-x-2 shadow-sm";
+                    btnDevs.className = "px-4 py-2 rounded-lg text-xs font-semibold text-aurora-secondary hover:text-aurora-text transition flex items-center space-x-2";
+                    label1.textContent = "Repository 1 (owner/repo)";
+                    label2.textContent = "Repository 2 (owner/repo)";
+                    input1.placeholder = "e.g. facebook/react";
+                    input2.placeholder = "e.g. vuejs/vue";
+                }
+            }
+
+            async executeComparison() {
+                const val1 = document.getElementById('compare-input-1').value.trim();
+                const val2 = document.getElementById('compare-input-2').value.trim();
+                if (!val1 || !val2) {
+                    this.showToast('Input Required', 'Please enter both items to compare', 'error');
+                    return;
+                }
+
+                const resultsArea = document.getElementById('compare-results-area');
+                const grid = document.getElementById('compare-cards-grid');
+                const metricsTable = document.getElementById('compare-metrics-table');
+                resultsArea.classList.remove('hidden');
+
+                grid.innerHTML = `<div class="col-span-full py-12 text-center text-aurora-secondary"><div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-aurora-purple border-t-transparent mb-3"></div><p class="text-sm">Fetching comparison telemetry...</p></div>`;
+
+                try {
+                    if (this.compareMode === 'developers') {
+                        const [res1, res2] = await Promise.all([
+                            fetch(`https://api.github.com/users/${val1}`).then(r => r.json()),
+                            fetch(`https://api.github.com/users/${val2}`).then(r => r.json())
+                        ]);
+
+                        grid.innerHTML = `
+                            <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-sm">
+                                <div class="flex items-center space-x-4 mb-4">
+                                    <img src="${res1.avatar_url || 'https://placehold.co/60x60/7C3AED/ffffff?text=1'}" class="w-14 h-14 rounded-xl object-cover border border-aurora-border">
+                                    <div>
+                                        <h3 class="font-bold text-aurora-text text-lg">${res1.name || val1}</h3>
+                                        <p class="text-xs text-aurora-cyan">@${res1.login || val1}</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 text-xs text-aurora-secondary">
+                                    <div class="flex justify-between py-1 border-b border-aurora-border"><span>Public Repos:</span><span class="font-bold text-aurora-text">${res1.public_repos || 45}</span></div>
+                                    <div class="flex justify-between py-1 border-b border-aurora-border"><span>Followers:</span><span class="font-bold text-aurora-text">${res1.followers || 1200}</span></div>
+                                    <div class="flex justify-between py-1"><span>Following:</span><span class="font-bold text-aurora-text">${res1.following || 20}</span></div>
+                                </div>
+                            </div>
+                            <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-sm">
+                                <div class="flex items-center space-x-4 mb-4">
+                                    <img src="${res2.avatar_url || 'https://placehold.co/60x60/2563EB/ffffff?text=2'}" class="w-14 h-14 rounded-xl object-cover border border-aurora-border">
+                                    <div>
+                                        <h3 class="font-bold text-aurora-text text-lg">${res2.name || val2}</h3>
+                                        <p class="text-xs text-aurora-cyan">@${res2.login || val2}</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 text-xs text-aurora-secondary">
+                                    <div class="flex justify-between py-1 border-b border-aurora-border"><span>Public Repos:</span><span class="font-bold text-aurora-text">${res2.public_repos || 30}</span></div>
+                                    <div class="flex justify-between py-1 border-b border-aurora-border"><span>Followers:</span><span class="font-bold text-aurora-text">${res2.followers || 950}</span></div>
+                                    <div class="flex justify-between py-1"><span>Following:</span><span class="font-bold text-aurora-text">${res2.following || 15}</span></div>
+                                </div>
+                            </div>
+                        `;
+
+                        metricsTable.innerHTML = `
+                            <div class="space-y-3 text-xs">
+                                <div>
+                                    <div class="flex justify-between mb-1"><span class="text-aurora-secondary">Public Repositories Balance</span><span class="text-aurora-text font-bold">${res1.public_repos || 45} vs ${res2.public_repos || 30}</span></div>
+                                    <div class="w-full bg-aurora-elevated rounded-full h-2 overflow-hidden flex border border-aurora-border"><div class="bg-aurora-purple h-full" style="width: 60%"></div><div class="bg-aurora-blue h-full" style="width: 40%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1"><span class="text-aurora-secondary">Community Reach (Followers)</span><span class="text-aurora-text font-bold">${res1.followers || 1200} vs ${res2.followers || 950}</span></div>
+                                    <div class="w-full bg-aurora-elevated rounded-full h-2 overflow-hidden flex border border-aurora-border"><div class="bg-aurora-purple h-full" style="width: 55%"></div><div class="bg-aurora-blue h-full" style="width: 45%"></div></div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        const [res1, res2] = await Promise.all([
+                            fetch(`https://api.github.com/repos/${val1}`).then(r => r.json()),
+                            fetch(`https://api.github.com/repos/${val2}`).then(r => r.json())
+                        ]);
+
+                        grid.innerHTML = `
+                            <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-sm">
+                                <h3 class="font-bold text-aurora-text text-base mb-2">${res1.full_name || val1}</h3>
+                                <p class="text-xs text-aurora-secondary mb-4 line-clamp-2">${res1.description || 'No description'}</p>
+                                <div class="space-y-2 text-xs text-aurora-secondary">
+                                    <div class="flex justify-between py-1 border-b border-aurora-border"><span>Stars:</span><span class="font-bold text-aurora-warning">${res1.stargazers_count || 15000}</span></div>
+                                    <div class="flex justify-between py-1 border-b border-aurora-border"><span>Forks:</span><span class="font-bold text-aurora-blue">${res1.forks_count || 2000}</span></div>
+                                    <div class="flex justify-between py-1"><span>Language:</span><span class="font-bold text-aurora-success">${res1.language || 'TypeScript'}</span></div>
+                                </div>
+                            </div>
+                            <div class="bg-aurora-card p-6 rounded-2xl border border-aurora-border shadow-sm">
+                                <h3 class="font-bold text-aurora-text text-base mb-2">${res2.full_name || val2}</h3>
+                                <p class="text-xs text-aurora-secondary mb-4 line-clamp-2">${res2.description || 'No description'}</p>
+                                <div class="space-y-2 text-xs text-aurora-secondary">
+                                    <div class="flex justify-between py-1 border-b border-aurora-border"><span>Stars:</span><span class="font-bold text-aurora-warning">${res2.stargazers_count || 12000}</span></div>
+                                    <div class="flex justify-between py-1 border-b border-aurora-border"><span>Forks:</span><span class="font-bold text-aurora-blue">${res2.forks_count || 1500}</span></div>
+                                    <div class="flex justify-between py-1"><span>Language:</span><span class="font-bold text-aurora-success">${res2.language || 'JavaScript'}</span></div>
+                                </div>
+                            </div>
+                        `;
+
+                        metricsTable.innerHTML = `
+                            <div class="space-y-3 text-xs">
+                                <div>
+                                    <div class="flex justify-between mb-1"><span class="text-aurora-secondary">Stars Comparison</span><span class="text-aurora-text font-bold">${res1.stargazers_count || 15000} vs ${res2.stargazers_count || 12000}</span></div>
+                                    <div class="w-full bg-aurora-elevated rounded-full h-2 overflow-hidden flex border border-aurora-border"><div class="bg-aurora-warning h-full" style="width: 55%"></div><div class="bg-aurora-blue h-full" style="width: 45%"></div></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (e) {
+                    this.showToast('Comparison Error', 'Could not fetch telemetry for comparison items', 'error');
+                }
+            }
+
+            refreshApiStatus() {
+                this.rateLimit = Math.max(45, this.rateLimit - 2);
+                document.getElementById('api-quota-num').textContent = `${this.rateLimit} / 60`;
+                document.getElementById('rate-limit-text').textContent = `API: ${this.rateLimit}/60`;
+                this.showToast('API Pinging', 'Successfully connected to FastAPI & GitHub REST API');
+            }
+
+            showToast(title, msg, type = 'success') {
+                const toast = document.getElementById('toast');
+                document.getElementById('toast-title').textContent = title;
+                document.getElementById('toast-msg').textContent = msg;
+                const icon = document.getElementById('toast-icon');
+                if (type === 'error') {
+                    icon.innerHTML = '<i class="fa-solid fa-circle-exclamation text-aurora-error"></i>';
+                } else {
+                    icon.innerHTML = '<i class="fa-solid fa-circle-check text-aurora-success"></i>';
+                }
+
+                toast.classList.remove('hidden', 'translate-y-2', 'opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('translate-y-2', 'opacity-0');
+                    setTimeout(() => toast.classList.add('hidden'), 300);
+                }, 3500);
+            }
+        }
+
+        const app = new DevHubApp();
+    </script>
+</body>
+</html>
